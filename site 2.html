@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenTrack AI - Système QR</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root { --primary: #2D6A4F; --secondary: #52B788; --light: #f8f9fa; }
+        body { font-family: sans-serif; background: #e9ecef; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin-bottom: 20px; text-align: center; }
+        
+        h2 { color: var(--primary); margin-top: 0; }
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-scan { background: #34495e; }
+
+        /* Style pour la zone QR et Caméra */
+        #qrcode { margin: 20px auto; display: flex; justify-content: center; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; }
+        
+        .status { padding: 10px; border-radius: 8px; margin-top: 15px; display: none; font-weight: bold; }
+        .badge { background: var(--secondary); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <span class="badge">📱 Vue Utilisateur</span>
+        <h2>Mes Éco-points</h2>
+        <div style="font-size: 2rem; font-weight: bold; color: var(--secondary);">1,250 🌿</div>
+        <p>Réduction : -5€ chez mon réparateur vélo</p>
+        
+        <button class="btn" onclick="genererMonQR()">GÉNÉRER MA RÉCOMPENSE</button>
+        
+        <div id="qrcode"></div>
+        <p id="info-code" style="font-size: 0.8rem; color: #666;"></p>
+    </div>
+
+    <div class="card" style="border-top: 5px solid #34495e;">
+        <span class="badge" style="background: #34495e;">🏪 Vue Commerçant</span>
+        <h2>Scanner un client</h2>
+        
+        <div id="reader"></div>
+        
+        <button class="btn btn-scan" onclick="demarrerScanner()">OUVRIR LA CAMÉRA</button>
+        
+        <div id="scan-result" class="status"></div>
+    </div>
+
+    <script>
+        // --- LOGIQUE DE SIMULATION ---
+        // Liste des codes valides (dans une vraie app, ce serait ta base de données)
+        let codesValides = [];
+
+        // 1. FONCTION : GENERER LE QR CODE (UTILISATEUR)
+        function genererMonQR() {
+            // On vide la zone si un code existe déjà
+            document.getElementById("qrcode").innerHTML = "";
+            
+            // On crée un identifiant unique (ex: GT-LILLE-12345)
+            const idUnique = "GT-LILLE-" + Math.floor(Math.random() * 10000);
+            
+            // On l'ajoute à notre "base de données" temporaire
+            codesValides.push(idUnique);
+
+            // On utilise la bibliothèque pour créer l'image
+            new QRCode(document.getElementById("qrcode"), {
+                text: idUnique,
+                width: 150,
+                height: 150
+            });
+
+            document.getElementById("info-code").innerText = "Code généré : " + idUnique;
+        }
+
+        // 2. FONCTION : SCANNER LE QR CODE (COMMERÇANT)
+        function demarrerScanner() {
+            const html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" }, // Utilise la caméra arrière
+                config,
+                (decodedText) => {
+                    // Si on a réussi à lire un texte dans le QR Code
+                    validerResultat(decodedText);
+                    html5QrCode.stop(); // On arrête la caméra après le scan
+                },
+                (errorMessage) => { /* On ignore les erreurs de lecture continue */ }
+            ).catch(err => alert("Erreur de caméra : " + err));
+        }
+
+        // 3. FONCTION : VALIDER SI LE CODE EXISTE
+        function validerResultat(texteScanne) {
+            const resultDiv = document.getElementById("scan-result");
+            resultDiv.style.display = "block";
+
+            // On vérifie si le texte scanné est dans notre liste
+            if (codesValides.includes(texteScanne)) {
+                resultDiv.style.backgroundColor = "#d8f3dc";
+                resultDiv.style.color = "#1b4332";
+                resultDiv.innerHTML = "✅ CODE VALIDE<br>Récompense : " + texteScanne;
+                
+                // On retire le code de la liste pour qu'il ne soit plus réutilisable
+                codesValides = codesValides.filter(c => c !== texteScanne);
+            } else {
+                resultDiv.style.backgroundColor = "#ffccd5";
+                resultDiv.style.color = "#c9184a";
+                resultDiv.innerHTML = "❌ CODE INVALIDE<br>Déjà utilisé ou inconnu.";
+            }
+        }
+    </script>
+</body>
+</html>
